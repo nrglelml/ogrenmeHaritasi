@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Ana Sayfa - AI Destekli Kişisel Öğrenme{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}
+
+{% block content %}
+<main>
+  <!-- HERO SECTION -->
+
+ <section class="hero d-flex align-items-center justify-content-between px-5">
+  <div class="hero-text">
+    <h1>AI Destekli Kişisel Öğrenme Platformu</h1>
+    <p>Öğrenme hedeflerinize en uygun yol haritasını oluşturun. Yapay zeka desteğiyle ilerleyin.</p>
+    <a href="{{ url_for('routes.chatbot') }}" class="btn btn-yellow animate">Planını Hazırla</a>
+  </div>
+  <div class="hero-image">
+    <img src="{{ url_for('static', filename='assets/images/hero.png') }}" alt="AI Learning Illustration" />
+  </div>
+</section>
+
+
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="feature">
+      <i class="fas fa-brain"></i>
+      <h3>Kİşisel Analiz</h3>
+      <p>Öğrenci davranış verilerine dayalı analizler.</p>
+    </div>
+    <div class="feature">
+      <i class="fas fa-book-open"></i>
+      <h3>Kapsamlı Kaynaklar</h3>
+      <p>Kitap, video ve kurs önerileri tek yerde.</p>
+    </div>
+    <div class="feature">
+      <i class="fas fa-download"></i>
+      <h3>PDF & Word Çıktı</h3>
+      <p>Planlarınızı düzenleyin ve indirin.</p>
+    </div>
+  </section>
+
+  <!-- STATS SECTION -->
+  <section class="stats">
+    <div>
+      <h2>10K+</h2>
+      <p>Kullanıcı</p>
+    </div>
+    <div>
+      <h2>20%</h2>
+      <p>Performans Artışı</p>
+    </div>
+    <div>
+      <h2>50+</h2>
+      <p>Desteklenen Konu</p>
+    </div>
+  </section>
+
+
+</main>
+{% endblock %}

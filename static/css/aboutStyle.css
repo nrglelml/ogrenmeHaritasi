@@ -1,0 +1,118 @@
+.about-hero {
+  background-color: #f9f9f9;
+  padding: 4rem 2rem;
+}
+
+.about-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: auto;
+  gap: 3rem;
+}
+
+.about-text {
+  flex: 1;
+  min-width: 300px;
+  animation: slideInLeft 1s ease;
+}
+
+.about-text h1 {
+  font-size: 2.8rem;
+  margin-bottom: 1rem;
+  color: #1c1c1c;
+}
+
+.about-text p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #444;
+  margin-bottom: 1rem;
+}
+
+.about-image {
+  flex: 1;
+  min-width: 280px;
+  text-align: center;
+  animation: fadeInRight 1.2s ease;
+}
+
+.about-image img {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+}
+
+.about-values {
+  background-color: #fff;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.about-values h2 {
+  font-size: 2.4rem;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+}
+
+.values-grid {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.value-box {
+  background-color: #f0f0f0;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 280px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.value-box:hover {
+  transform: translateY(-5px);
+}
+
+.value-box img {
+  width: 60px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.value-box h3 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+  color: #1c1c1c;
+}
+
+.value-box p {
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Animasyonlar */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

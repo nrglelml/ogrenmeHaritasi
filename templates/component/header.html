@@ -1,0 +1,48 @@
+<!-- Header -->
+<header class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container">
+    <!-- Logo -->
+    <a class="navbar-brand d-flex align-items-center" href="{{ url_for('routes.index') }}">
+      <img src="{{ url_for('static', filename='assets/images/logo.jpg') }}" class="me-2" width="40" height="40" alt="Logo">
+      <strong>Kişisel Öğrenme</strong>
+    </a>
+
+    <!-- Hamburger Toggle (Mobile) -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Nav Menu -->
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'routes.index' %}active{% endif %}" href="{{ url_for('routes.index') }}">
+            <i class="fas fa-home me-1"></i> Ana Sayfa
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'routes.resources' %}active{% endif %}" href="{{ url_for('routes.resources') }}">
+            <i class="fas fa-book me-1"></i> Eğitim Kaynakları
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'routes.faq' %}active{% endif %}" href="{{ url_for('routes.faq') }}">
+            <i class="fas fa-question-circle me-1"></i> FAQs
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'routes.about' %}active{% endif %}" href="{{ url_for('routes.about') }}">
+            <i class="fas fa-info-circle me-1"></i> Hakkında
+          </a>
+        </li>
+      </ul>
+
+      <!-- Action Button -->
+      {% if request.endpoint != 'routes.chatbot' %}
+      <a href="{{ url_for('routes.chatbot') }}" class="btn btn-warning fw-semibold">
+        Haydi Başlayalım!
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</header>

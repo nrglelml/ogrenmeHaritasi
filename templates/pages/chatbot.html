@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2> Öğrenmek İstediğiniz Konuyu Girin</h2>
+    <p>Aşağıya öğrenmek istediğiniz konuyu yazın. Sistem sizin için kişiselleştirilmiş öğrenme planı ve yol haritası oluşturacak.</p>
+
+    <form action="{{ url_for('routes.generate') }}" method="POST">
+        <div class="mb-3">
+            <label for="topic" class="form-label">Konu / Ders</label>
+            <input type="text" class="form-control" id="topic" name="topic" placeholder="örn: denklem çözme" required>
+        </div>
+        <button type="submit" class="btn btn-warning"> Planı Oluştur</button>
+    </form>
+</div>
+{% endblock %}

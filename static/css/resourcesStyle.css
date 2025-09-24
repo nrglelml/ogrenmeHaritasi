@@ -1,0 +1,18 @@
+.card {
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.02);
+}
+
+.card-body {
+  font-size: 0.95rem;
+}
+
+h4 {
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+  color: #333;
+}

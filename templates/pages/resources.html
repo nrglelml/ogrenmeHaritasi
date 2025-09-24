@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Kaynak Önerileri{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/resourcesStyle.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4 text-center">AI Destekli Kaynak Önerileri</h2>
+
+  <form method="POST" class="mb-5">
+    <div class="input-group">
+      <input type="text" name="topic" class="form-control" placeholder="Öğrenmek istediğiniz konuyu yazın..." required>
+      <button type="submit" class="btn btn-primary">Önerileri Al</button>
+    </div>
+  </form>
+
+  {% if error %}
+    <div class="alert alert-warning">{{ error }}</div>
+  {% endif %}
+
+  {% if resources %}
+    {% if resources["VIDEOS"] %}
+    <h4 class="mt-4">Videolar</h4>
+    <div class="row">
+      {% for item in resources["VIDEOS"] %}
+      <div class="col-md-6 mb-3">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <p class="card-text">{{ item }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if resources["ARTICLES"] %}
+    <h4 class="mt-4">Makaleler</h4>
+    <ul class="list-group mb-4">
+      {% for item in resources["ARTICLES"] %}
+        <li class="list-group-item">{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if resources["BOOKS"] %}
+    <h4 class="mt-4">Kitaplar</h4>
+    <ul class="list-group mb-4">
+      {% for item in resources["BOOKS"] %}
+        <li class="list-group-item">{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if resources["COURSES"] %}
+    <h4 class="mt-4">Udemy Kursları</h4>
+    <ul class="list-group mb-4">
+      {% for item in resources["COURSES"] %}
+        <li class="list-group-item">{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% elif resources is not none %}
+    <div class="alert alert-info mt-4">Bu konu için sonuç bulunamadı.</div>
+  {% endif %}
+</div>
+{% endblock %}

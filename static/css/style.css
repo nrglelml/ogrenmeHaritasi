@@ -1,0 +1,71 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  box-sizing: border-box;
+  background-color: #f8f9fa; /* Sayfa arka plan rengi */
+  font-family: Arial, sans-serif;
+}
+
+
+header {
+  margin: 0 !important;
+  padding: 1% !important;
+  /*position: absolute; /* Gerekirse kullanın */
+  top: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 5%;
+}
+
+main {
+  min-height: calc(100vh - 100px); /* Header ve Footer yüksekliğini çıkar */
+}
+
+footer {
+  width: 100%;
+  background-color: #212529;
+  color: white;
+  text-align: center;
+  position: relative; /* İçeriğin hemen altına yerleşir */
+  bottom: 0;
+  padding: 1rem 0;
+}
+
+.container {
+  padding-bottom: 50px; /* İçeriğin altına yer açar */
+}
+
+.rounded-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #000; /* Siyah çerçeve */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hafif gölge */
+}
+.form-control-dark {
+  color: #ffffff;
+  background-color: #333333;
+  border: 1px solid #555555;
+}
+
+.form-control-dark::placeholder {
+  color: #aaaaaa;
+}
+
+.nav .nav-link.active {
+  border-bottom: 3px solid white; /* Çizgi kalınlığı */
+  font-weight: bold; /* Yazıyı kalınlaştır */
+  color: #ffffff !important; /* Renk uyumsuzluğu varsa düzelt */
+}
+/* Header için özel bir sınıf ekleyin */
+.custom-header input.form-control-dark {
+    width: 200px; /* Arama çubuğu genişliği */
+    margin: 0;
+    padding: 5px;
+}
+
+.custom-header .btn-warning {
+    margin-left: 10px;
+}

@@ -1,0 +1,36 @@
+.faq-page {
+  background-color: #f8f9fa;
+}
+
+.faq-page h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #343a40;
+}
+
+.faq-page p {
+  font-size: 1.1rem;
+}
+
+.accordion-button {
+  font-size: 1rem;
+  font-weight: bold;
+  background-color: #ffffff;
+  color: #343a40;
+}
+
+.accordion-button:hover {
+  background-color: #e9ecef;
+}
+
+.accordion-body {
+  font-size: 0.95rem;
+  color: #6c757d;
+}
+
+#faqSearch {
+  border-radius: 20px;
+  border: 1px solid #ced4da;
+  padding: 10px;
+  font-size: 1rem;
+}

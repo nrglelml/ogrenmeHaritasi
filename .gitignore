@@ -1,0 +1,29 @@
+# Python Bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment
+.env
+.venv/
+env/
+ENV/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VSCode / JetBrains
+.vscode/
+.idea/
+
+# Output Files
+outputs/
+*.pdf
+*.png
+*.jpg
+
+# Jupyter
+.ipynb_checkpoints/
+data/*.csv

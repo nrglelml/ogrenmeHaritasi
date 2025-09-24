@@ -1,0 +1,79 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  box-sizing: border-box;
+  background-color: #f8f9fa; /* Sayfa arka plan rengi */
+  font-family: Arial, sans-serif;
+}
+h1 {
+  color: #343a40;
+  font-weight: bold;
+}
+
+form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+label {
+  font-weight: bold;
+}
+
+button {
+  background-color: #6c757d;
+  border: none;
+}
+
+button:hover {
+  background-color: #6c757d;
+}
+
+
+form {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+
+    border-radius: 5px;
+}
+
+form label {
+    font-weight: bold;
+    margin-top: 10px;
+    display: block;
+}
+
+form input, form select, form button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+#roadmap-result {
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #eef;
+    border-radius: 5px;
+}
+
+#roadmap-result h3, #roadmap-result h4 {
+    margin-bottom: 10px;
+}
+
+#roadmap-result ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+#roadmap-result {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-top: 20px;
+}

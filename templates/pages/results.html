@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <h2>Planınız Hazır!</h2>
+    <p><strong>{{ topic }}</strong> konusu için kişiselleştirilmiş öğrenme planınız ve yol haritanız hazır.</p>
+
+    <div class="mt-4">
+        <a href="{{ url_for('routes.download_file', filename=resource_pdf) }}" class="btn btn-primary btn-lg mb-2">
+             Öğrenme Planı PDF İndir
+        </a>
+        <br>
+        <a href="{{ url_for('routes.download_file', filename=timeline_pdf) }}" class="btn btn-success btn-lg">
+             Yol Haritası PDF İndir
+        </a>
+    </div>
+</div>
+{% endblock %}
