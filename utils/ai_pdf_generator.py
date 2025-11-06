@@ -8,11 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 import re
+import wikipedia
 from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 # --- AI'dan Plan + Timeline Adımları Alma ---
 def get_ai_learning_plan_and_steps(topic, problems=None, guidance=None):
@@ -135,49 +138,51 @@ def generate_two_pdfs_hybrid(user_input, df_with_skills, output_dir="outputs"):
     if steps:
         create_timeline_pdf(steps, os.path.join(output_dir, f"{safe_topic}_roadmap.pdf"))
 
-def get_ai_resources(user_input):
-    prompt = f"""
-You are an educational content assistant.
 
-The user wants to learn about: **{user_input}**
-
-Please suggest:
-- 2 YouTube videos (title and link)
-- 2 articles (title and a 1-line summary)
-- 2 books (title and author)
-- 2 Udemy courses (title and link)
-
-Format your response like this:
-===VIDEOS===
-Video Title - https://youtube.com/example
-Video Title - https://youtube.com/example
-
-===ARTICLES===
-Article Title - Short summary sentence.
-Article Title - Short summary sentence.
-
-===BOOKS===
-Book Title - Author
-Book Title - Author
-
-===COURSES===
-Course Title - https://udemy.com/example
-Course Title - https://udemy.com/example
-"""
-
+def get_wikipedia_summary(user_input, lang="en"):
+    wikipedia.set_lang(lang)
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful AI for suggesting educational resources."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print("OpenAI kaynak önerisi hatası:", e)
-        return "===VIDEOS===\nYok\n===ARTICLES===\nYok\n===BOOKS===\nYok\n===COURSES===\nYok"
+        summary = wikipedia.summary(user_input, sentences=3)
+        page = wikipedia.page(user_input)
+        return {
+            "title": page.title,
+            "summary": summary,
+            "url": page.url
+        }
+    except wikipedia.exceptions.DisambiguationError as e:
+        return {"error": f"Çok anlamlı konu, lütfen daha net yazın. Örnekler: {e.options[:3]}"}
+    except wikipedia.exceptions.PageError:
+        return {"error": "Bu konuda Wikipedia sayfası bulunamadı."}
+
+def get_ai_resources(topic):
+    results = {}
+
+    # 1. Wikipedia
+    wiki = get_wikipedia_summary(topic)
+    results["Wikipedia"] = wiki
+
+    # 2. YouTube (isteğe bağlı: youtube-search-python)
+    results["Videos"] = [
+        f"https://www.youtube.com/results?search_query={topic}+introduction"
+    ]
+
+    # 3. Books
+    results["Books"] = [
+        f"https://www.google.com/search?q={topic}+book"
+    ]
+
+    # 4. arXiv (isteğe bağlı)
+    results["Articles"] = [
+        f"https://arxiv.org/search/?query={topic}&searchtype=all"
+    ]
+
+    # 5. Wikibooks/Wikiversity
+    results["Wikibooks"] = [
+        f"https://en.wikibooks.org/wiki/{topic.replace(' ', '_')}"
+    ]
+
+    return results
+
 
 
 def parse_ai_resources(raw_text):

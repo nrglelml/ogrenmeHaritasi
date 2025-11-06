@@ -7,7 +7,7 @@
 
 {% block content %}
 <div class="container my-5">
-  <h2 class="mb-4 text-center">AI Destekli Kaynak Önerileri</h2>
+  <h2 class="mb-4 text-center">Ücretsiz Kaynak Önerileri</h2>
 
   <form method="POST" class="mb-5">
     <div class="input-group">
@@ -17,53 +17,36 @@
   </form>
 
   {% if error %}
-    <div class="alert alert-warning">{{ error }}</div>
+    <div class="alert alert-danger">{{ error }}</div>
   {% endif %}
 
   {% if resources %}
-    {% if resources["VIDEOS"] %}
-    <h4 class="mt-4">Videolar</h4>
-    <div class="row">
-      {% for item in resources["VIDEOS"] %}
-      <div class="col-md-6 mb-3">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body">
-            <p class="card-text">{{ item }}</p>
-          </div>
-        </div>
+    {% if resources["Wikipedia"] and resources["Wikipedia"]["summary"] %}
+    <h4 class="mt-4">🌐 Wikipedia</h4>
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5>{{ resources["Wikipedia"]["title"] }}</h5>
+        <p>{{ resources["Wikipedia"]["summary"] }}</p>
+        <a href="{{ resources['Wikipedia']['url'] }}" target="_blank" class="btn btn-sm btn-outline-primary">Wikipedia'da Gör</a>
       </div>
-      {% endfor %}
     </div>
     {% endif %}
 
-    {% if resources["ARTICLES"] %}
-    <h4 class="mt-4">Makaleler</h4>
-    <ul class="list-group mb-4">
-      {% for item in resources["ARTICLES"] %}
-        <li class="list-group-item">{{ item }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+    {% for section in ["Videos", "Articles", "Books", "Wikibooks"] %}
+      {% if resources[section] %}
+        <h4 class="mt-4">{{ section }}</h4>
+        <ul class="list-group mb-4">
+          {% for item in resources[section] %}
+            <li class="list-group-item">
+              {{ item }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endfor %}
 
-    {% if resources["BOOKS"] %}
-    <h4 class="mt-4">Kitaplar</h4>
-    <ul class="list-group mb-4">
-      {% for item in resources["BOOKS"] %}
-        <li class="list-group-item">{{ item }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if resources["COURSES"] %}
-    <h4 class="mt-4">Udemy Kursları</h4>
-    <ul class="list-group mb-4">
-      {% for item in resources["COURSES"] %}
-        <li class="list-group-item">{{ item }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
   {% elif resources is not none %}
-    <div class="alert alert-info mt-4">Bu konu için sonuç bulunamadı.</div>
+    <div class="alert alert-warning mt-4">Bu konu için sonuç bulunamadı.</div>
   {% endif %}
 </div>
 {% endblock %}

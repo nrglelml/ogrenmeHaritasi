@@ -26,4 +26,4 @@ outputs/
 
 # Jupyter
 .ipynb_checkpoints/
-data/*.csv
+
