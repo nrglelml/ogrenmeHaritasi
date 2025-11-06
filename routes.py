@@ -74,19 +74,30 @@ def download_file(filename):
 @routes.route("/resources", methods=["GET", "POST"])
 def resources():
     if request.method == "POST":
-        # POST isteği için JSON verisi bekleniyorsa request.get_json() kullanın
-        data = request.get_json()
-        if not data or 'topic' not in data:
-            return jsonify({"error": "Lütfen bir konu giriniz."}), 400
+        if request.is_json:
+            user_input = request.json.get("topic", "").strip()
+        else:
+            user_input = request.form.get("topic", "").strip()
 
-        user_input = data.get("topic").strip()
         if not user_input:
-            return jsonify({"error": "Lütfen bir konu giriniz."}), 400
+            return jsonify({"error": "Konu boş olamaz."}), 400
 
         raw_response = get_ai_resources(user_input)
         resources_dict = parse_ai_resources(raw_response)
 
-        # Bu satır, mobil uygulamanızın beklediği JSON yanıtını döndürür
-        return jsonify(resources_dict)
+        if request.is_json:
+            return jsonify({
+                "topic": user_input,
+                "resources": resources_dict
+            })
+        else:
+            return render_template(
+                "pages/resources.html",
+                topic=user_input,
+                resources=resources_dict,
+                error=None
+            )
 
+    # GET isteği için sayfa döndür
     return render_template("pages/resources.html", resources=None, error=None)
+
