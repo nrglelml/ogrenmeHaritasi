@@ -116,10 +116,8 @@ def resources():
         raw_response = get_ai_resources(user_input)
 
         if request.is_json:
-            return jsonify({
-                "topic": user_input,
-                "resources": raw_response
-            })
+            return jsonify(raw_response)
+
         else:
             return render_template(
                 "pages/resources.html",
