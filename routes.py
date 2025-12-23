@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, send_from_directory, jsonify, current_app
 import os
 import pandas as pd
+from openai import OpenAI
+
 from utils.ai_pdf_generator import (
     generate_two_pdfs_hybrid,
     get_ai_resources,
@@ -29,7 +31,7 @@ BASE_URL = "https://drive.google.com/uc?export=download"
 _cached_df = None
 
 
-def get_data():
+"""def get_data():
     global _cached_df
 
     if _cached_df is None:
@@ -42,7 +44,7 @@ def get_data():
 
 
             if "text/html" in response.headers.get('Content-Type', ''):
-                print("⚠️ Virüs tarama uyarısı algılandı. Form verileri çözümleniyor...")
+                print(" Virüs tarama uyarısı algılandı. Form verileri çözümleniyor...")
 
 
                 html_content = ""
@@ -79,7 +81,7 @@ def get_data():
 
             # 2. İNDİRME VE PANDAS (RAM ÜZERİNDEN)
             if "text/csv" in response.headers.get('Content-Type', '') or response.status_code == 200:
-                print("✅ Veri akışı yakalandı. Pandas ile okunuyor (Diske yazılmıyor)...")
+                print(" Veri akışı yakalandı. Pandas ile okunuyor (Diske yazılmıyor)...")
 
                 req_cols = ["skills", "problem_id", "correct"]
 
@@ -105,8 +107,98 @@ def get_data():
 
         print("--------------------------------------------------")
 
-    return _cached_df
+    return _cached_df """
 
+client = OpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY")
+)
+AI_MODEL = "llama-3.3-70b-versatile"
+
+
+def get_english_term(text):
+    """ 'Python Programlama' -> 'Python' çevirisi yapar """
+    try:
+        response = client.chat.completions.create(
+            model=AI_MODEL,
+            messages=[{"role": "system", "content": "Translate to English technical term. Only output the word."},
+                      {"role": "user", "content": text}],
+            temperature=0.1
+        )
+        return response.choices[0].message.content.strip().replace('"', '').replace('.', '')
+    except:
+        return text
+
+
+def smart_search_stream(topic):
+    """
+    HİBRİT MOTOR: RAM dostu arama.
+    1.1 GB veriyi yüklemez, sadece ilgili kısmı bulana kadar tarar.
+    """
+    FILE_ID = "1EU6wifU-cdpeSHjKdl2jvxzLD26Lq-bs"
+    URL = "https://drive.google.com/uc?export=download"
+
+    # 1. Dil Çevirisi (Veri seti İngilizce)
+    eng_term = get_english_term(topic)
+    search_terms = [topic, eng_term]
+    print(f" Hibrit Arama Başladı: {search_terms}")
+
+    try:
+        session = requests.Session()
+        response = session.get(URL, params={'id': FILE_ID}, stream=True)
+
+        # --- Google Drive Virüs Engelini Aşma ---
+        if "text/html" in response.headers.get('Content-Type', ''):
+            html = ""
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk: html += chunk.decode('utf-8', errors='ignore')
+                if len(html) > 10000: break
+
+            confirm_match = re.search(r'name="confirm" value="([^"]+)"', html)
+            confirm = confirm_match.group(1) if confirm_match else "t"
+
+            # uuid parametresini de yakalayalım (Loglarda görmüştük)
+            uuid_match = re.search(r'name="uuid" value="([^"]+)"', html)
+            params = {'id': FILE_ID, 'confirm': confirm}
+            if uuid_match:
+                params['uuid'] = uuid_match.group(1)
+
+            response = session.get("https://drive.usercontent.google.com/download", params=params, stream=True)
+
+        # --- RAM DOSTU OKUMA (Chunking) ---
+        response.raw.decode_content = True
+        chunk_iterator = pd.read_csv(
+            response.raw,
+            chunksize=10000,  # Her seferde sadece 10bin satır (RAM şişmez)
+            usecols=["skills", "problem_id", "correct"],  # Sadece gereken sütunlar
+            dtype=str,  # Hız için string oku
+            low_memory=True
+        )
+
+        found_data = []
+
+        for chunk in chunk_iterator:
+            # Regex ile arama (Hızlı)
+            pattern = '|'.join([re.escape(t) for t in search_terms if t])
+            matches = chunk[chunk['skills'].str.contains(pattern, case=False, na=False)]
+
+            if not matches.empty:
+                found_data.append(matches)
+                print(f"   -> {len(matches)} veri bulundu!")
+
+                .
+                if sum([len(d) for d in found_data]) > 100:
+                    print("   ⚡ Yeterli örneklem alındı, arama sonlandırılıyor.")
+                    break
+
+        if found_data:
+            return pd.concat(found_data)
+
+        return pd.DataFrame()
+
+    except Exception as e:
+        print(f" Veri Okuma Hatası (AI Devreye Girecek): {e}")
+        return pd.DataFrame()
 
 # --- Sayfa rotaları ---
 @routes.route("/")
@@ -130,44 +222,36 @@ def chatbot():
 @routes.route("/generate", methods=["POST"])
 def generate():
     if request.is_json:
-        user_input = request.json.get("topic", "").strip()
-        duration = request.json.get("duration", "").strip()
+        data = request.json
+        user_input = data.get("topic", "").strip()
+        duration = data.get("duration", "").strip()
     else:
         user_input = request.form.get("topic", "").strip()
         duration = request.form.get("duration", "").strip()
 
-    if not duration:
-        duration = None
-
     if not user_input:
         return jsonify({"error": "Konu girilmedi."}), 400
 
-    safe_topic = sanitize_filename(user_input)
-    df = get_data()
+
+    df_filtered = smart_search_stream(user_input)
+
 
     try:
-
-        generate_two_pdfs_hybrid(user_input, df, output_dir=UPLOAD_FOLDER, duration=duration)
+        safe_topic = generate_two_pdfs_hybrid(user_input, df_filtered, output_dir=UPLOAD_FOLDER, duration=duration)
     except Exception as e:
-        return jsonify({"error": f"PDF oluşturma hatası: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-    resource_pdf = f"{safe_topic}_resources.pdf"
-    timeline_pdf = f"{safe_topic}_roadmap.pdf"
-
+    # ... (URL dönüş kodları aynı) ...
     base_url = request.host_url.rstrip("/")
-
     if request.is_json:
         return jsonify({
-            "resource_url": f"{base_url}/download/{resource_pdf}",
-            "roadmap_url": f"{base_url}/download/{timeline_pdf}"
+            "resource_url": f"{base_url}/download/{safe_topic}_resources.pdf",
+            "roadmap_url": f"{base_url}/download/{safe_topic}_roadmap.pdf"
         })
     else:
-        return render_template(
-            "pages/results.html",
-            resource_pdf=resource_pdf,
-            timeline_pdf=timeline_pdf,
-            topic=user_input  # Başlıkta göstermek için
-        )
+        return render_template("pages/results.html", topic=user_input, resource_pdf=f"{safe_topic}_resources.pdf",
+                               timeline_pdf=f"{safe_topic}_roadmap.pdf")
+
 
 
 # --- Dosya indirme ---
