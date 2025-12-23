@@ -3,50 +3,116 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/resourcesStyle.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-  <h2 class="mb-4 text-center">Ücretsiz Kaynak Önerileri</h2>
+  <div class="text-center mb-5">
+      <h2 class="fw-bold">Yapay Zeka Destekli Kaynak Önerileri</h2>
+      <p class="text-muted">Öğrenmek istediğiniz konuyu yazın, size en uygun videoları, makaleleri ve kitapları bulalım.</p>
+  </div>
 
-  <form method="POST" class="mb-5">
-    <div class="input-group">
-      <input type="text" name="topic" class="form-control" placeholder="Öğrenmek istediğiniz konuyu yazın..." required>
-      <button type="submit" class="btn btn-primary">Önerileri Al</button>
-    </div>
-  </form>
+  <div class="row justify-content-center">
+      <div class="col-md-8">
+          <form method="POST" class="mb-5" id="resourceForm">
+            <div class="input-group input-group-lg shadow-sm">
+              <input type="text" name="topic" class="form-control" placeholder="Örn: React Native, Veri Bilimi, Tarih..." required value="{{ topic if topic else '' }}">
+              <button type="submit" class="btn btn-primary px-4" id="searchBtn">
+                  <i class="fas fa-search me-2"></i>Önerileri Al
+              </button>
+            </div>
+            <div id="loadingMessage" class="text-center mt-3" style="display: none;">
+                <div class="spinner-border text-primary text-center" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Yapay zeka kaynakları tarıyor, lütfen bekleyin...</p>
+            </div>
+          </form>
+      </div>
+  </div>
 
   {% if error %}
-    <div class="alert alert-danger">{{ error }}</div>
+    <div class="alert alert-danger text-center shadow-sm">{{ error }}</div>
   {% endif %}
 
   {% if resources %}
-    {% if resources["Wikipedia"] and resources["Wikipedia"]["summary"] %}
-    <h4 class="mt-4">🌐 Wikipedia</h4>
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5>{{ resources["Wikipedia"]["title"] }}</h5>
-        <p>{{ resources["Wikipedia"]["summary"] }}</p>
-        <a href="{{ resources['Wikipedia']['url'] }}" target="_blank" class="btn btn-sm btn-outline-primary">Wikipedia'da Gör</a>
-      </div>
-    </div>
-    {% endif %}
+  <div class="container mt-2">
+      <h4 class="mb-4 pb-2 border-bottom">
+          <span class="text-primary fw-bold">{{ topic }}</span> İçin Seçilen Kaynaklar
+      </h4>
 
-    {% for section in ["Videos", "Articles", "Books", "Wikibooks"] %}
-      {% if resources[section] %}
-        <h4 class="mt-4">{{ section }}</h4>
-        <ul class="list-group mb-4">
-          {% for item in resources[section] %}
-            <li class="list-group-item">
-              {{ item }}
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endfor %}
+      {% for category, items in resources.items() %}
+          {% if items %}
+          <div class="card mb-4 shadow border-0 overflow-hidden">
+              <div class="card-header bg-gradient bg-primary text-white d-flex align-items-center">
+                  {% if 'Video' in category %}
+                    <i class="fab fa-youtube me-2 fa-lg"></i>
+                  {% elif 'Book' in category or 'Kitap' in category %}
+                    <i class="fas fa-book me-2 fa-lg"></i>
+                  {% elif 'Article' in category or 'Makale' in category %}
+                    <i class="far fa-newspaper me-2 fa-lg"></i>
+                  {% elif 'Wikipedia' in category %}
+                    <i class="fab fa-wikipedia-w me-2 fa-lg"></i>
+                  {% else %}
+                    <i class="fas fa-layer-group me-2 fa-lg"></i>
+                  {% endif %}
 
-  {% elif resources is not none %}
-    <div class="alert alert-warning mt-4">Bu konu için sonuç bulunamadı.</div>
+                  <h5 class="m-0 fw-bold">{{ category }}</h5>
+              </div>
+
+              <div class="card-body bg-light">
+                  <div class="row g-3">
+                      {% for item in items %}
+                      <div class="col-md-6 col-lg-4">
+                          <div class="card h-100 border-0 shadow-sm hover-effect">
+                              <div class="card-body d-flex flex-column">
+                                  <h6 class="card-title fw-bold text-dark">
+                                      {{ item.title }}
+                                  </h6>
+
+                                  {% if item.desc %}
+                                      <p class="card-text text-muted small flex-grow-1 mt-2">
+                                          {{ item.desc }}
+                                      </p>
+                                  {% else %}
+                                      <p class="flex-grow-1"></p> {% endif %}
+
+                                  <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary mt-3 w-100 stretched-link">
+                                      <i class="fas fa-external-link-alt me-1"></i> Kaynağa Git
+                                  </a>
+                              </div>
+                          </div>
+                      </div>
+                      {% endfor %}
+                  </div>
+              </div>
+          </div>
+          {% endif %}
+      {% endfor %}
+  </div>
   {% endif %}
 </div>
+
+<script>
+    document.getElementById('resourceForm').addEventListener('submit', function() {
+        var btn = document.getElementById('searchBtn');
+        var loader = document.getElementById('loadingMessage');
+
+        // Butonu pasif yap ve loader'ı göster
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Aranıyor...';
+        loader.style.display = 'block';
+    });
+</script>
+
+<style>
+    /* Kartların üzerine gelince hafif yukarı kalkması için */
+    .hover-effect {
+        transition: transform 0.2s;
+    }
+    .hover-effect:hover {
+        transform: translateY(-5px);
+    }
+</style>
 {% endblock %}

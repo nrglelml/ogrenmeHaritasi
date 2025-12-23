@@ -21,8 +21,7 @@ Thumbs.db
 # Output Files
 outputs/
 *.pdf
-*.png
-*.jpg
+
 
 # Jupyter
 .ipynb_checkpoints/

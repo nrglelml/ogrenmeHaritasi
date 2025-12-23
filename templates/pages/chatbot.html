@@ -2,14 +2,21 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2> Öğrenmek İstediğiniz Konuyu Girin</h2>
-    <p>Aşağıya öğrenmek istediğiniz konuyu yazın. Sistem sizin için kişiselleştirilmiş öğrenme planı ve yol haritası oluşturacak.</p>
+    <h2>Öğrenmek İstediğiniz Konuyu Girin</h2>
+    <p>Aşağıya öğrenmek istediğiniz konuyu ve varsa ayırabileceğiniz süreyi yazın.</p>
 
     <form action="{{ url_for('routes.generate') }}" method="POST">
         <div class="mb-3">
             <label for="topic" class="form-label">Konu / Ders</label>
-            <input type="text" class="form-control" id="topic" name="topic" placeholder="örn: denklem çözme" required>
+            <input type="text" class="form-control" id="topic" name="topic" placeholder="örn: Python Programlama, Türev, İspanyolca" required>
         </div>
+
+        <div class="mb-3">
+            <label for="duration" class="form-label">Zaman Hedefi (İsteğe Bağlı)</label>
+            <input type="text" class="form-control" id="duration" name="duration" placeholder="örn: 4 ay, 2 hafta, 60 gün">
+            <div class="form-text">Boş bırakırsanız "Kendi Hızında (Seviye Bazlı)" bir plan oluşturulur.</div>
+        </div>
+
         <button type="submit" class="btn btn-warning"> Planı Oluştur</button>
     </form>
 </div>
