@@ -186,7 +186,7 @@ def smart_search_stream(topic):
                 found_data.append(matches)
                 print(f"   -> {len(matches)} veri bulundu!")
 
-                .
+
                 if sum([len(d) for d in found_data]) > 100:
                     print("   ⚡ Yeterli örneklem alındı, arama sonlandırılıyor.")
                     break
