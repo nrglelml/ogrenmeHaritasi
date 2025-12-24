@@ -1,14 +1,14 @@
 from flask import Blueprint, render_template, request, send_from_directory, jsonify
 import os
-import pandas as pd  # Sadece analiz için kalsın, okuma için kullanmayacağız
+import pandas as pd
 from openai import OpenAI
 from utils.ai_pdf_generator import generate_two_pdfs_hybrid, get_ai_resources
-from utils.sanitize import sanitize_filename
 from dotenv import load_dotenv
 import requests
 import re
 import csv
 import io
+import time
 
 load_dotenv()
 
@@ -17,7 +17,6 @@ routes = Blueprint("routes", __name__)
 # Çıktı klasörü
 UPLOAD_FOLDER = "outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 FILE_ID = "1EU6wifU-cdpeSHjKdl2jvxzLD26Lq-bs"
 DRIVE_URL = "https://drive.google.com/uc?export=download"
@@ -45,14 +44,15 @@ def get_english_term(text):
 
 def smart_search_stream(topic):
     """
-    NANO-SEARCH MOTORU:
-    Pandas yerine Python'un yerel 'csv' modülünü kullanır.
-    RAM kullanımı neredeyse SIFIRDIR. Asla çökmez.
+    TIME-BOXED NANO SEARCH:
+    Maksimum 8 saniye çalışır. Veri bulamazsa durur.
+    Sunucunun 'Timeout' yemesini engeller.
     """
-    print(f"[WEB] Veri Seti Taranıyor (Nano Mod): '{topic}'...")
+    print(f"[WEB] Veri Seti Taranıyor (Zaman Ayarlı): '{topic}'...")
     eng_term = get_english_term(topic)
-
     search_terms = [t.lower() for t in [topic, eng_term] if t]
+
+    start_time = time.time()
 
     try:
         session = requests.Session()
@@ -81,11 +81,11 @@ def smart_search_stream(topic):
 
         found_rows = []
         limit = 0
-        MAX_SCAN = 100000
 
         for i, row in enumerate(reader):
-            if i > MAX_SCAN:
-                print("  Tarama limiti aşıldı, durduruluyor.")
+
+            if time.time() - start_time > 8:
+                print("Zaman doldu (8sn). Arama güvenli şekilde durduruluyor.")
                 break
 
             skill_val = row.get('skills', '')
@@ -101,7 +101,7 @@ def smart_search_stream(topic):
                 limit += 1
 
                 if limit >= 50:
-                    print(f"  Yeterli veri ({limit} satır) bulundu.")
+                    print(f"Yeterli veri ({limit} satır) bulundu.")
                     break
 
         if found_rows:
@@ -110,35 +110,30 @@ def smart_search_stream(topic):
         return pd.DataFrame()
 
     except Exception as e:
-        print(f" Nano Arama Hatası (AI Devam Edecek): {e}")
+        print(f"Arama Hatası (AI Devam Edecek): {e}")
         return pd.DataFrame()
 
 
-# --- Sayfa Rotaları ---
+# --- Endpointler ---
+
 @routes.route("/")
-def index():
-    return render_template("pages/index.html")
+def index(): return render_template("pages/index.html")
 
 
 @routes.route("/about")
-def about():
-    return render_template("pages/about.html")
+def about(): return render_template("pages/about.html")
 
 
 @routes.route("/faq")
-def faq():
-    return render_template("pages/faq.html")
+def faq(): return render_template("pages/faq.html")
 
 
 @routes.route("/chatbot")
-def chatbot():
-    return render_template("pages/chatbot.html")
+def chatbot(): return render_template("pages/chatbot.html")
 
 
-# --- PDF Üretimi ---
 @routes.route("/generate", methods=["POST"])
 def generate():
-    # 1. İstek Tipi Kontrolü
     if request.is_json:
         data = request.json
         user_input = data.get("topic", "").strip()
@@ -164,6 +159,7 @@ def generate():
             df_filtered = pd.DataFrame()
 
     try:
+
         safe_topic = generate_two_pdfs_hybrid(user_input, df_filtered, output_dir=UPLOAD_FOLDER, duration=duration)
     except Exception as e:
         print(f"PDF ERROR: {e}")
@@ -193,31 +189,17 @@ def download_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 
-# --- Kaynak Önerileri ---
 @routes.route("/resources", methods=["GET", "POST"])
 def resources():
     if request.method == "POST":
-        if request.is_json:
-            user_input = request.json.get("topic", "").strip()
-        else:
-            user_input = request.form.get("topic", "").strip()
+        user_input = request.json.get("topic", "").strip() if request.is_json else request.form.get("topic", "").strip()
 
         if not user_input:
-            if request.is_json:
-                return jsonify({"error": "Konu boş olamaz."}), 400
-            else:
-                return render_template("pages/resources.html", error="Lütfen bir konu girin.")
+            return jsonify({"error": "Konu boş olamaz."}) if request.is_json else render_template(
+                "pages/resources.html", error="Lütfen bir konu girin.")
 
         raw_response = get_ai_resources(user_input)
-
-        if request.is_json:
-            return jsonify(raw_response)
-        else:
-            return render_template(
-                "pages/resources.html",
-                topic=user_input,
-                resources=raw_response,
-                error=None
-            )
+        return jsonify(raw_response) if request.is_json else render_template("pages/resources.html", topic=user_input,
+                                                                             resources=raw_response)
 
     return render_template("pages/resources.html", resources=None, error=None)
