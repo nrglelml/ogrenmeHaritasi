@@ -5,6 +5,7 @@ import wikipedia
 import requests
 import matplotlib
 
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -18,6 +19,10 @@ from datetime import datetime
 from .sanitize import sanitize_filename
 from dotenv import load_dotenv
 import textwrap
+from youtubesearchpython import VideosSearch
+from duckduckgo_search import DDGS
+import urllib.parse
+
 
 load_dotenv()
 
@@ -233,77 +238,156 @@ def create_timeline_pdf(steps, filename):
 
 
 
+try:
+    wikipedia.set_lang("tr")
+except:
+    pass
 
-def get_wikipedia_summary(user_input, lang="en"):
-    wikipedia.set_lang(lang)
-    try:
-        wikipedia.set_user_agent("LearningPlanProject/1.0")
-    except AttributeError:
-        pass
 
+def get_wikipedia_summary(topic):
     try:
-        summary = wikipedia.summary(user_input, sentences=3)
-        page = wikipedia.page(user_input)
+        summary = wikipedia.summary(topic, sentences=2)
+        page = wikipedia.page(topic)
         return {"title": page.title, "summary": summary, "url": page.url}
-    except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout) as e:
-        print(f"Wiki Bağlantı Hatası: {e}")
-        return {"error": "Wikipedia'ya bağlanılamadı."}
-    except wikipedia.exceptions.DisambiguationError as e:
-        return {"error": f"Çok anlamlı: {e.options[:3]}"}
-    except wikipedia.exceptions.PageError:
-        return {"error": "Sayfa bulunamadı."}
-    except Exception as e:
-        return {"error": f"Hata: {str(e)}"}
+    except:
+        return None
 
 
-
-def get_ai_resources(topic):
-    results = {}
-
-    # 1. Wikipedia
-    wiki_data = get_wikipedia_summary(topic)
-    if "error" not in wiki_data:
-        results["Wikipedia"] = [wiki_data]
-
-
-    prompt = f"""
-    Sen uzman bir eğitim asistanısın. Kullanıcı "{topic}" konusunu öğrenmek istiyor.
-    Bu konu için en iyi ve en güncel kaynakları öner.
-
-    Kurallar:
-    1. Cevabı SADECE geçerli bir JSON formatında ver.
-    2. Linklerin (url) çalışacağından emin ol.
-    3. Kategoriler: "Videos", "Articles", "Books", "Courses".
-    4. Her kaynak objesi şunları içermeli: "title", "url", "desc" (Türkçe açıklama).
-
-    İstenen JSON Yapısı:
-    {{
-        "Videos": [ {{"title": "...", "url": "...", "desc": "..."}} ],
-        "Articles": [],
-        "Books": [],
-        "Courses": []
-    }}
+def is_safe_language(text):
     """
+    İçeriğin Türkçe veya İngilizce olup olmadığını kontrol eder.
+    Çince, Japonca, Korece, Kiril vb. karakterler varsa False döner.
+    """
+    if not text: return False
 
+    # Çince, Japonca, Korece karakter aralığı (CJK Unified Ideographs)
+    if re.search(r'[\u4e00-\u9fff]', text):
+        return False
+    # Rusça (Kiril) karakter aralığı (İsteğe bağlı, O-RAN Rusça da çıkabilir)
+    if re.search(r'[\u0400-\u04FF]', text):
+        return False
+
+    return True
+
+
+def get_real_resources(topic):
+    results = {
+        "Wikipedia": [],
+        "Videos": [],
+        "Articles": [],
+        "Courses": []
+    }
+
+    safe_topic = urllib.parse.quote_plus(topic)
+    topic_lower = topic.lower()
+
+    # ---------------------------------------------------------
+    # 1. GARANTİLİ KAYNAKLAR (Hardcoded)
+    # ---------------------------------------------------------
+
+    # Sadece YAZILIM konularında W3Schools göster (Matematikte gösterme)
+    coding_keywords = ['python', 'java', 'html', 'css', 'javascript', 'sql', 'c#', 'c++', 'react', 'php', 'yazılım',
+                       'kodlama']
+    if any(k in topic_lower for k in coding_keywords):
+        results["Articles"].append({
+            "title": f"{topic} - W3Schools Rehberi",
+            "url": f"https://www.w3schools.com/{topic.split()[0].lower()}/",
+            "desc": "Yazılım öğrenmek için en popüler kaynak."
+        })
+
+        # Medium (Yazılım için iyidir)
+        results["Articles"].append({
+            "title": f"Medium: {topic} Makaleleri",
+            "url": f"https://medium.com/search?q={safe_topic}",
+            "desc": "Uzman yazılımcıların makaleleri."
+        })
+    else:
+        # MATEMATİK veya DİĞER konular için garanti kaynaklar (Khan Academy vb.)
+        results["Articles"].append({
+            "title": f"Khan Academy: {topic}",
+            "url": f"https://tr.khanacademy.org/search?page_search_query={safe_topic}",
+            "desc": "Ücretsiz, dünya standartlarında eğitim."
+        })
+
+    # Udemy & Coursera (Her konu için geçerli)
+    results["Courses"].append({
+        "title": f"Udemy: {topic} Kursları",
+        "url": f"https://www.udemy.com/courses/search/?q={safe_topic}",
+        "desc": "Udemy üzerindeki en yüksek puanlı kurslar."
+    })
+
+    results["Courses"].append({
+        "title": f"Youtube: {topic} Oynatma Listeleri",
+        "url": f"https://www.youtube.com/results?search_query={safe_topic}+dersleri&sp=EgIQAw%253D%253D",
+        # Playlist filtresi
+        "desc": "Konuyla ilgili ücretsiz video serileri."
+    })
+
+    # ---------------------------------------------------------
+    # 2. DİNAMİK ARAMA (Filtreli)
+    # ---------------------------------------------------------
+
+    # WIKIPEDIA
+    wiki_data = get_wikipedia_summary(topic)
+    if wiki_data: results["Wikipedia"].append(wiki_data)
+
+    # YOUTUBE (Video Arama)
     try:
-        response = client.chat.completions.create(
-            model=AI_MODEL,  # Llama-3 modeli
-            response_format={"type": "json_object"},  # Groq da JSON modunu destekler
-            messages=[
-                {"role": "system", "content": "Sen JSON çıktısı veren bir asistansın."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3
-        )
+        # Aramayı özelleştir: "Konu + ders anlatımı türkçe"
+        search_query = f"{topic} ders anlatımı türkçe"
+        print(f"🎥 Youtube aranıyor: {search_query}")
 
-        content = response.choices[0].message.content
-        ai_data = json.loads(content)
-        results.update(ai_data)
+        videos_search = VideosSearch(search_query, limit=3)
+        videos_result = videos_search.result()
+
+        for video in videos_result['result']:
+            # Başlıkta Çince var mı kontrol et
+            if is_safe_language(video['title']):
+                results["Videos"].append({
+                    "title": video['title'],
+                    "url": video['link'],
+                    "desc": f"Kanal: {video['channel']['name']} | {video.get('duration', '')}",
+                    "thumbnail": video['thumbnails'][0]['url']
+                })
+    except Exception as e:
+        print(f"Youtube Hatası: {e}")
+
+    # WEB MAKALELERİ (DuckDuckGo - Sıkı Filtreli)
+    try:
+        # Aramayı eğitim odaklı yapıyoruz: "Konu + nedir + konu anlatımı"
+        web_query = f"{topic} konu anlatımı ders notları nedir"
+        print(f"🌍 Web aranıyor: {web_query}")
+
+        with DDGS() as ddgs:
+            # Türkiye bölgesi, Güvenli Arama Açık
+            ddg_results = list(ddgs.text(web_query, region='tr-tr', safesearch='on', max_results=4))
+
+            for res in ddg_results:
+                title = res['title']
+                body = res['body']
+
+                # --- FİLTRELEME MOTORU ---
+                # 1. W3Schools zaten eklediysek atla
+                if "w3schools" in res['href']: continue
+
+                # 2. Çince/Yabancı karakter kontrolü (O-RAN sorunu için)
+                if not is_safe_language(title) or not is_safe_language(body):
+                    print(f"🚫 Yabancı kaynak engellendi: {title}")
+                    continue
+
+                results["Articles"].append({
+                    "title": title,
+                    "url": res['href'],
+                    "desc": body[:100] + "..."
+                })
 
     except Exception as e:
-        print(f"Groq Hatası: {e}")
-        # Hata durumunda kullanıcı boş sayfa görmesin diye manuel link ekleyebiliriz
-        results["Hata"] = [
-            {"title": "Bağlantı Sorunu", "url": "#", "desc": "Yapay zeka yanıt veremedi, lütfen tekrar deneyin."}]
+        print(f"Web Arama Hatası: {e}")
 
     return results
+
+
+# Wrapper
+def get_ai_resources(topic):
+    return get_real_resources(topic)
+
