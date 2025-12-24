@@ -30,7 +30,7 @@ AI_MODEL = "llama-3.3-70b-versatile"
 USER_TOPIC_MAP = {
     "matematik": ["8.NS.A.2-1", "7.EE.B.4a-1", "6.NS.B.3-3"],
     "sayılar": ["8.NS.A.2-1", "6.NS.B.3-3", "8.NS.A.2-2"],
-    "oran orantı": ["7.RP.A.1", "7.RP.A.2", "7.RP.A.3"], # Genişletildi
+    "oran orantı": ["7.RP.A.1", "7.RP.A.2", "7.RP.A.3"],
     "oran": ["7.RP.A.1"],
     "orantı": ["7.RP.A.2"],
     "denklem çözme": ["6.EE.B.7", "7.EE.B.4a-1", "8.EE.C.7"],
@@ -175,15 +175,11 @@ def generate():
         return jsonify({"error": "Konu girilmedi."}), 400
 
     df_filtered = pd.DataFrame()
-
-    if source == 'mobile':
-        print(f"[MOBİL] Hız Modu: '{user_input}' için veri taraması atlanıyor.")
-    else:
-        try:
-            df_filtered = smart_search_stream(user_input)
-        except Exception as e:
-            print(f"Kritik Hata (Atlanıyor): {e}")
-            df_filtered = pd.DataFrame()
+    try:
+        df_filtered = smart_search_stream(user_input)
+    except Exception as e:
+        print(f"Kritik Hata (Atlanıyor): {e}")
+        df_filtered = pd.DataFrame()
 
     try:
 
