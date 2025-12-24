@@ -27,7 +27,22 @@ client = OpenAI(
 )
 AI_MODEL = "llama-3.3-70b-versatile"
 
-
+USER_TOPIC_MAP = {
+    "matematik": ["8.NS.A.2-1", "7.EE.B.4a-1", "6.NS.B.3-3"],
+    "sayılar": ["8.NS.A.2-1", "6.NS.B.3-3", "8.NS.A.2-2"],
+    "oran orantı": ["7.RP.A.1", "7.RP.A.2", "7.RP.A.3"], # Genişletildi
+    "oran": ["7.RP.A.1"],
+    "orantı": ["7.RP.A.2"],
+    "denklem çözme": ["6.EE.B.7", "7.EE.B.4a-1", "8.EE.C.7"],
+    "denklemler": ["6.EE.B.7", "8.EE.C.7"],
+    "fonksiyonlar": ["8.F.B.5", "8.F.A.1"],
+    "veri": ["8.SP.A.1"],
+    "geometri": ["8.G.A.3-1", "8.G.A.1"],
+    "ifadeler": ["7.EE.A.2"],
+    "üslü sayılar": ["8.EE.A.1"],
+    "kareköklü sayılar": ["8.EE.A.2"],
+    "olasılık": ["7.SP.C.5"]
+}
 def get_english_term(text):
     """ 'Python Programlama' -> 'Python' çevirisi yapar """
     try:
@@ -44,13 +59,25 @@ def get_english_term(text):
 
 def smart_search_stream(topic):
     """
-    TIME-BOXED NANO SEARCH:
-    Maksimum 8 saniye çalışır. Veri bulamazsa durur.
-    Sunucunun 'Timeout' yemesini engeller.
+    HİBRİT ARAMA MOTORU (Harita Destekli):
+    1. Önce USER_TOPIC_MAP'e bakar (Nokta Atışı).
+    2. Bulamazsa İngilizce çeviri ile arar.
+    3. Maksimum 8 saniye çalışır (Timeout Koruması).
     """
-    print(f"[WEB] Veri Seti Taranıyor (Zaman Ayarlı): '{topic}'...")
-    eng_term = get_english_term(topic)
-    search_terms = [t.lower() for t in [topic, eng_term] if t]
+    print(f"[WEB] Veri Seti Taranıyor: '{topic}'...")
+
+    topic_lower = topic.lower().strip()
+    search_terms = []
+
+    # 1. HARİTA KONTROLÜ (Öncelikli)
+    if topic_lower in USER_TOPIC_MAP:
+        search_terms = USER_TOPIC_MAP[topic_lower]
+        print(f" Harita Eşleşmesi: {topic} -> {search_terms}")
+    else:
+        # 2. ÇEVİRİ KONTROLÜ (Yedek)
+        eng_term = get_english_term(topic)
+        search_terms = [t.lower() for t in [topic, eng_term] if t]
+        print(f"  Haritada yok, Kelime Bazlı Arama: {search_terms}")
 
     start_time = time.time()
 
@@ -83,16 +110,15 @@ def smart_search_stream(topic):
         limit = 0
 
         for i, row in enumerate(reader):
-
             if time.time() - start_time > 8:
-                print("Zaman doldu (8sn). Arama güvenli şekilde durduruluyor.")
+                print(" Süre doldu. Arama güvenli şekilde durduruluyor.")
                 break
 
-            skill_val = row.get('skills', '')
-            if not skill_val: continue
 
-            skill_lower = skill_val.lower()
-            if any(term in skill_lower for term in search_terms):
+            row_content = (str(row.get('skills', '')) + " " + str(row.get('problem_id', ''))).lower()
+
+
+            if any(term.lower() in row_content for term in search_terms):
                 found_rows.append({
                     "skills": row.get('skills'),
                     "problem_id": row.get('problem_id'),
@@ -107,10 +133,11 @@ def smart_search_stream(topic):
         if found_rows:
             return pd.DataFrame(found_rows)
 
+        print("Veri bulunamadı (Harita/Çeviri eşleşmedi).")
         return pd.DataFrame()
 
     except Exception as e:
-        print(f"Arama Hatası (AI Devam Edecek): {e}")
+        print(f"Arama Hatası: {e}")
         return pd.DataFrame()
 
 
