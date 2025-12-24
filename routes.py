@@ -1,13 +1,14 @@
 from flask import Blueprint, render_template, request, send_from_directory, jsonify
 import os
-import pandas as pd
+import pandas as pd  # Sadece analiz için kalsın, okuma için kullanmayacağız
 from openai import OpenAI
 from utils.ai_pdf_generator import generate_two_pdfs_hybrid, get_ai_resources
 from utils.sanitize import sanitize_filename
 from dotenv import load_dotenv
 import requests
 import re
-import gc
+import csv
+import io
 
 load_dotenv()
 
@@ -16,6 +17,7 @@ routes = Blueprint("routes", __name__)
 # Çıktı klasörü
 UPLOAD_FOLDER = "outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 FILE_ID = "1EU6wifU-cdpeSHjKdl2jvxzLD26Lq-bs"
 DRIVE_URL = "https://drive.google.com/uc?export=download"
@@ -43,18 +45,18 @@ def get_english_term(text):
 
 def smart_search_stream(topic):
     """
-    ULTRA-LITE HİBRİT ARAMA:
-    Render Free Tier (512MB RAM) için özel optimize edilmiştir.
-    Asla 1.1GB veriyi yüklemez, küçük parçalarla 'tadım testi' yapar.
+    NANO-SEARCH MOTORU:
+    Pandas yerine Python'un yerel 'csv' modülünü kullanır.
+    RAM kullanımı neredeyse SIFIRDIR. Asla çökmez.
     """
-    print(f" [WEB] Veri Seti Taranıyor (Ultra-Lite Mod): '{topic}'...")
+    print(f"[WEB] Veri Seti Taranıyor (Nano Mod): '{topic}'...")
     eng_term = get_english_term(topic)
-    search_terms = [topic, eng_term]
+
+    search_terms = [t.lower() for t in [topic, eng_term] if t]
 
     try:
         session = requests.Session()
         response = session.get(DRIVE_URL, params={'id': FILE_ID}, stream=True)
-
 
         if "text/html" in response.headers.get('Content-Type', ''):
             html = ""
@@ -72,54 +74,43 @@ def smart_search_stream(topic):
 
             response = session.get("https://drive.usercontent.google.com/download", params=params, stream=True)
 
-
         response.raw.decode_content = True
+        text_stream = io.TextIOWrapper(response.raw, encoding='utf-8')
 
+        reader = csv.DictReader(text_stream)
 
-        chunk_iterator = pd.read_csv(
-            response.raw,
-            chunksize=2000,
-            usecols=["skills", "problem_id", "correct"],
-            dtype=str,
-            low_memory=True
-        )
+        found_rows = []
+        limit = 0
+        MAX_SCAN = 100000
 
-        found_data = []
-        total_found = 0
-        total_scanned = 0
-        MAX_SCAN_LIMIT = 100000
-
-        for chunk in chunk_iterator:
-            pattern = '|'.join([re.escape(t) for t in search_terms if t])
-            matches = chunk[chunk['skills'].str.contains(pattern, case=False, na=False)]
-
-            total_scanned += len(chunk)
-
-            if not matches.empty:
-                found_data.append(matches)
-                total_found += len(matches)
-
-
-                if total_found > 100:
-                    print(" Yeterli veri örneği bulundu, arama tamamlandı.")
-                    break
-
-
-            if total_scanned >= MAX_SCAN_LIMIT:
-                print(f"    {MAX_SCAN_LIMIT} satır tarandı, veri bulunamadı. RAM koruması için durduruluyor.")
+        for i, row in enumerate(reader):
+            if i > MAX_SCAN:
+                print("  Tarama limiti aşıldı, durduruluyor.")
                 break
 
+            skill_val = row.get('skills', '')
+            if not skill_val: continue
 
-            gc.collect()
+            skill_lower = skill_val.lower()
+            if any(term in skill_lower for term in search_terms):
+                found_rows.append({
+                    "skills": row.get('skills'),
+                    "problem_id": row.get('problem_id'),
+                    "correct": row.get('correct')
+                })
+                limit += 1
 
-        if found_data:
-            return pd.concat(found_data)
+                if limit >= 50:
+                    print(f"  Yeterli veri ({limit} satır) bulundu.")
+                    break
+
+        if found_rows:
+            return pd.DataFrame(found_rows)
 
         return pd.DataFrame()
 
     except Exception as e:
-        print(f" Arama Sırasında RAM/Bağlantı Hatası (AI Devreye Girecek): {e}")
-
+        print(f" Nano Arama Hatası (AI Devam Edecek): {e}")
         return pd.DataFrame()
 
 
@@ -144,7 +135,7 @@ def chatbot():
     return render_template("pages/chatbot.html")
 
 
-
+# --- PDF Üretimi ---
 @routes.route("/generate", methods=["POST"])
 def generate():
     # 1. İstek Tipi Kontrolü
@@ -161,27 +152,22 @@ def generate():
     if not user_input:
         return jsonify({"error": "Konu girilmedi."}), 400
 
-
     df_filtered = pd.DataFrame()
 
     if source == 'mobile':
-        print(f"🚀 [MOBİL] Hız Modu: '{user_input}' için veri taraması atlanıyor.")
+        print(f"[MOBİL] Hız Modu: '{user_input}' için veri taraması atlanıyor.")
     else:
-        # Web isteği ise akıllı arama yap
-        # Hata yakalama bloğu ekleyelim ki sunucu 500 vermesin
         try:
             df_filtered = smart_search_stream(user_input)
         except Exception as e:
-            print(f"Kritik Arama Hatası (Atlanıyor): {e}")
+            print(f"Kritik Hata (Atlanıyor): {e}")
             df_filtered = pd.DataFrame()
-
 
     try:
         safe_topic = generate_two_pdfs_hybrid(user_input, df_filtered, output_dir=UPLOAD_FOLDER, duration=duration)
     except Exception as e:
-        print(f"PDF Oluşturma Hatası: {e}")
-        return jsonify({"error": "PDF oluşturulamadı, lütfen tekrar deneyin."}), 500
-
+        print(f"PDF ERROR: {e}")
+        return jsonify({"error": "PDF oluşturulamadı, sistem yoğun."}), 500
 
     base_url = request.host_url.rstrip("/")
 
@@ -199,7 +185,6 @@ def generate():
         )
 
 
-# --- İndirme Rotası ---
 @routes.route("/download/<filename>")
 def download_file(filename):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
