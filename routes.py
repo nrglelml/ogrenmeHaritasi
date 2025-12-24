@@ -161,32 +161,56 @@ def chatbot(): return render_template("pages/chatbot.html")
 
 @routes.route("/generate", methods=["POST"])
 def generate():
+
     if request.is_json:
         data = request.json
         user_input = data.get("topic", "").strip()
-        duration = data.get("duration", "").strip()
+
+
+        raw_duration = data.get("duration")
+        if raw_duration and str(raw_duration).strip():
+            duration = str(raw_duration).strip()
+        else:
+            duration = None
+
         source = data.get("source", "web")
     else:
         user_input = request.form.get("topic", "").strip()
-        duration = request.form.get("duration", "").strip()
+        raw_duration = request.form.get("duration")
+        if raw_duration and str(raw_duration).strip():
+            duration = str(raw_duration).strip()
+        else:
+            duration = None
         source = request.form.get("source", "web")
 
     if not user_input:
         return jsonify({"error": "Konu girilmedi."}), 400
 
     df_filtered = pd.DataFrame()
-    try:
-        df_filtered = smart_search_stream(user_input)
-    except Exception as e:
-        print(f"Kritik Hata (Atlanıyor): {e}")
-        df_filtered = pd.DataFrame()
+
+
+    if source == 'mobile':
+        print(f"[MOBİL] Hız Modu: '{user_input}' (Veri analizi yapılıyor...)")
+        try:
+
+            df_filtered = smart_search_stream(user_input)
+        except Exception as e:
+            print(f"Kritik Hata (Atlanıyor): {e}")
+            df_filtered = pd.DataFrame()
+    else:
+        try:
+            df_filtered = smart_search_stream(user_input)
+        except Exception as e:
+            print(f"Kritik Hata (Atlanıyor): {e}")
+            df_filtered = pd.DataFrame()
+
 
     try:
 
         safe_topic = generate_two_pdfs_hybrid(user_input, df_filtered, output_dir=UPLOAD_FOLDER, duration=duration)
     except Exception as e:
         print(f"PDF ERROR: {e}")
-        return jsonify({"error": "PDF oluşturulamadı, sistem yoğun."}), 500
+        return jsonify({"error": f"PDF oluşturulamadı: {str(e)}"}), 500
 
     base_url = request.host_url.rstrip("/")
 
